@@ -7,11 +7,11 @@ use std::time::{ Duration, Instant };
 use std::collections::VecDeque;
 use rand::Rng;
 
-const WINDOW_WIDTH: u32 = 800;
-const WINDOW_HEIGHT: u32 = 600;
-const ROAD_WIDTH: i32 = 120;
+const WINDOW_WIDTH: u32 = 1000;
+const WINDOW_HEIGHT: u32 = 800;
+const ROAD_WIDTH: i32 = 60;
 const LANE_WIDTH: i32 = 30;
-const VEHICLE_SIZE: i32 = 20;
+const VEHICLE_SIZE: i32 = 30;
 const SAFETY_GAP: i32 = 15;
 const VEHICLE_SPEED: i32 = 2;
 const SPAWN_COOLDOWN: Duration = Duration::from_millis(500);
@@ -38,7 +38,7 @@ struct Vehicle {
     direction: Direction,
     route: Route,
     color: Color,
-    has_turned: bool, // Add this new field
+    has_turned: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -51,22 +51,14 @@ struct TrafficLight {
     state: LightState,
     timer: Instant,
     red_duration: Duration,
-    // FIX: Added the missing green_duration field
-    green_duration: Duration,
 }
 
-struct TrafficController {
-    current_phase: u8,
-    phase_timer: Instant,
-    phase_durations: [Duration; 2], // For Green/Red cycles
-}
 
 impl TrafficLight {
     fn new() -> Self {
         Self {
             state: LightState::Red,
             timer: Instant::now(),
-            green_duration: Duration::from_secs(8),
             red_duration: Duration::from_secs(6),
         }
     }
@@ -79,13 +71,9 @@ impl TrafficLight {
             0.0
         };
 
-        // Extend green time if there's congestion
         let adjusted_green = if congestion_factor > 0.7 {
             Duration::from_secs(12)
         } else {
-            // FIX: Use the struct's initial green_duration, not a hardcoded 8 secs,
-            // or ensure this 8 secs is what's intended as a base.
-            // I'm keeping your original logic where 8s is the base.
             Duration::from_secs(8)
         };
 
@@ -151,14 +139,13 @@ impl Lane {
         let color = get_route_color(route);
         let (x, y) = self.get_spawn_position();
 
-        // In Lane::spawn_vehicle()
         let vehicle = Vehicle {
             x,
             y,
             direction: self.direction,
             route,
             color,
-            has_turned: false, // Initialize the flag
+            has_turned: false,
         };
 
         self.vehicles.push_back(vehicle);
@@ -173,8 +160,8 @@ impl Lane {
             Direction::North =>
                 (center_x + (LANE_WIDTH as f32) / 2.0, (WINDOW_HEIGHT as f32) - 30.0),
             Direction::South => (center_x - (LANE_WIDTH as f32) / 2.0, 30.0),
-            Direction::East => (30.0, center_y - (LANE_WIDTH as f32) / 2.0),
-            Direction::West => ((WINDOW_WIDTH as f32) - 30.0, center_y + (LANE_WIDTH as f32) / 2.0),
+            Direction::East => (30.0, center_y + (LANE_WIDTH as f32) / 2.0),
+            Direction::West => ((WINDOW_WIDTH as f32) - 30.0, center_y - (LANE_WIDTH as f32) / 2.0),
         }
     }
 
@@ -184,12 +171,10 @@ impl Lane {
         let mut to_remove = Vec::new();
         let traffic_light_state = self.traffic_light.state;
 
-        // First pass: collect vehicle data and determine movements
         let mut movements = Vec::new();
         for (i, vehicle) in self.vehicles.iter().enumerate() {
             let mut can_move = true;
 
-            // Check collision with vehicle in front
             if i > 0 {
                 let front_vehicle = &self.vehicles[i - 1];
                 let distance = calculate_distance(*vehicle, *front_vehicle);
@@ -198,7 +183,6 @@ impl Lane {
                 }
             }
 
-            // Check traffic light at intersection entrance
             if at_intersection_entrance(*vehicle) && traffic_light_state == LightState::Red {
                 can_move = false;
             }
@@ -206,19 +190,16 @@ impl Lane {
             movements.push(can_move);
         }
 
-        // Second pass: apply movements and check for removal
         for (i, vehicle) in self.vehicles.iter_mut().enumerate() {
             if movements[i] {
                 move_vehicle(vehicle);
 
-                // Check if vehicle should be removed
                 if vehicle_off_screen(*vehicle) {
                     to_remove.push(i);
                 }
             }
         }
 
-        // Remove vehicles in reverse order to maintain indices
         for &i in to_remove.iter().rev() {
             self.vehicles.remove(i);
         }
@@ -266,7 +247,6 @@ fn move_vehicle(vehicle: &mut Vehicle) {
         }
     }
 
-    // Handle route changes at intersection center
     handle_route_change(vehicle);
 }
 
@@ -274,7 +254,6 @@ fn handle_route_change(vehicle: &mut Vehicle) {
     let center_x = (WINDOW_WIDTH as f32) / 2.0;
     let center_y = (WINDOW_HEIGHT as f32) / 2.0;
 
-    // Only allow a turn if the vehicle is not going straight and has not already turned
     if vehicle.route != Route::Straight && !vehicle.has_turned {
         let should_turn = match vehicle.direction {
             Direction::North => vehicle.y <= center_y,
@@ -284,7 +263,7 @@ fn handle_route_change(vehicle: &mut Vehicle) {
         };
 
         if should_turn {
-            // This is the correct turning logic
+            // Change direction and adjust position to proper lane
             match vehicle.route {
                 Route::Left => {
                     vehicle.direction = match vehicle.direction {
@@ -293,6 +272,8 @@ fn handle_route_change(vehicle: &mut Vehicle) {
                         Direction::East => Direction::North,
                         Direction::West => Direction::South,
                     };
+                    // Position vehicle in the correct lane after left turn
+                    adjust_position_after_turn(vehicle, center_x, center_y);
                 }
                 Route::Right => {
                     vehicle.direction = match vehicle.direction {
@@ -301,10 +282,40 @@ fn handle_route_change(vehicle: &mut Vehicle) {
                         Direction::East => Direction::South,
                         Direction::West => Direction::North,
                     };
+                    // Position vehicle in the correct lane after right turn
+                    adjust_position_after_turn(vehicle, center_x, center_y);
                 }
-                _ => {} // Route::Straight is handled by the outer if
+                _ => {}
             }
             vehicle.has_turned = true;
+        }
+    }
+}
+
+// New function to adjust vehicle position to proper lane after turning
+fn adjust_position_after_turn(vehicle: &mut Vehicle, center_x: f32, center_y: f32) {
+    let lane_offset = (LANE_WIDTH as f32) / 2.0;
+    
+    match vehicle.direction {
+        Direction::North => {
+            // Moving north, should be in right lane (left side of road from top view)
+            vehicle.x = center_x + lane_offset;
+            vehicle.y = center_y;
+        }
+        Direction::South => {
+            // Moving south, should be in right lane (right side of road from top view)
+            vehicle.x = center_x - lane_offset;
+            vehicle.y = center_y;
+        }
+        Direction::East => {
+            // Moving east, should be in right lane (bottom side of road from side view)
+            vehicle.x = center_x;
+            vehicle.y = center_y + lane_offset;
+        }
+        Direction::West => {
+            // Moving west, should be in right lane (top side of road from side view)
+            vehicle.x = center_x;
+            vehicle.y = center_y - lane_offset;
         }
     }
 }
@@ -326,7 +337,6 @@ fn get_route_color(route: Route) -> Color {
 
 struct TrafficSimulation {
     lanes: [Lane; 4],
-    traffic_controller: TrafficController, // Use the new controller
 }
 
 impl TrafficSimulation {
@@ -337,12 +347,7 @@ impl TrafficSimulation {
                 Lane::new(Direction::South),
                 Lane::new(Direction::East),
                 Lane::new(Direction::West),
-            ],
-            traffic_controller: TrafficController {
-                current_phase: 0,
-                phase_timer: Instant::now(),
-                phase_durations: [Duration::from_secs(8), Duration::from_secs(6)],
-            },
+            ]
         }
     }
 
@@ -374,20 +379,12 @@ impl TrafficSimulation {
     }
 
     fn render(&self, canvas: &mut WindowCanvas) -> Result<(), String> {
-        // Clear screen
         canvas.set_draw_color(Color::RGB(50, 50, 50));
         canvas.clear();
 
-        // Draw roads
         self.draw_roads(canvas)?;
-
-        // Draw traffic lights
         self.draw_traffic_lights(canvas)?;
-
-        // Draw vehicles
         self.draw_vehicles(canvas)?;
-
-        // Draw UI info
         self.draw_ui(canvas)?;
 
         canvas.present();
@@ -400,24 +397,19 @@ impl TrafficSimulation {
         let center_x = (WINDOW_WIDTH as i32) / 2;
         let center_y = (WINDOW_HEIGHT as i32) / 2;
 
-        // Horizontal road
         let h_road = Rect::new(0, center_y - ROAD_WIDTH / 2, WINDOW_WIDTH, ROAD_WIDTH as u32);
         canvas.fill_rect(h_road)?;
 
-        // Vertical road
         let v_road = Rect::new(center_x - ROAD_WIDTH / 2, 0, ROAD_WIDTH as u32, WINDOW_HEIGHT);
         canvas.fill_rect(v_road)?;
 
-        // Draw lane dividers
         canvas.set_draw_color(Color::RGB(255, 255, 255));
 
-        // Horizontal divider
         for x in (0..WINDOW_WIDTH as i32).step_by(20) {
             let rect = Rect::new(x, center_y - 1, 10, 2);
             canvas.fill_rect(rect)?;
         }
 
-        // Vertical divider
         for y in (0..WINDOW_HEIGHT as i32).step_by(20) {
             let rect = Rect::new(center_x - 1, y, 2, 10);
             canvas.fill_rect(rect)?;
@@ -433,10 +425,10 @@ impl TrafficSimulation {
         let offset = ROAD_WIDTH / 2 + 20;
 
         let positions = [
-            (center_x + LANE_WIDTH / 2 + 5, center_y + offset), // North
-            (center_x - LANE_WIDTH / 2 - 5, center_y - offset), // South
-            (center_x + offset, center_y - LANE_WIDTH / 2 - 5), // East
-            (center_x - offset, center_y + LANE_WIDTH / 2 + 5), // West
+            (center_x + LANE_WIDTH / 2 + 5, center_y + offset),
+            (center_x - LANE_WIDTH / 2 - 5, center_y - offset),
+            (center_x + offset, center_y - LANE_WIDTH / 2 - 5),
+            (center_x - offset, center_y + LANE_WIDTH / 2 + 5),
         ];
 
         for (i, (x, y)) in positions.iter().enumerate() {
@@ -479,7 +471,6 @@ impl TrafficSimulation {
                 );
                 canvas.fill_rect(rect)?;
 
-                // Draw direction indicator
                 canvas.set_draw_color(Color::RGB(255, 255, 255));
                 let (dx, dy) = match vehicle.direction {
                     Direction::North => (0, -3),
@@ -500,7 +491,6 @@ impl TrafficSimulation {
     }
 
     fn draw_ui(&self, canvas: &mut WindowCanvas) -> Result<(), String> {
-        // Draw legend and stats (simplified for this example)
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         let info_bg = Rect::new(10, 10, 300, 120);
         canvas.fill_rect(info_bg)?;
@@ -564,7 +554,7 @@ fn main() -> Result<(), String> {
         simulation.update();
         simulation.render(&mut canvas)?;
 
-        std::thread::sleep(Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(30));
     }
 
     Ok(())
