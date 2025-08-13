@@ -9,7 +9,7 @@ use rand::Rng;
 
 const WINDOW_WIDTH: u32 = 1000;
 const WINDOW_HEIGHT: u32 = 800;
-const ROAD_WIDTH: i32 = 200;
+const ROAD_WIDTH: i32 = 60;
 const LANE_WIDTH: i32 = 30;
 const VEHICLE_SIZE: i32 = 30;
 const SAFETY_GAP: i32 = 15;
@@ -288,10 +288,10 @@ impl TrafficSimulation {
                 canvas.set_draw_color(vehicle.color);
 
                 let (x, y) = match vehicle.direction {
-                    Direction::North => (center_x + vehicle_half + 30, vehicle.y as i32),
-                    Direction::South => (center_x - vehicle_half - 30, vehicle.y as i32),
-                    Direction::East => (vehicle.x as i32, center_y + vehicle_half + 30),
-                    Direction::West => (vehicle.x as i32, center_y - vehicle_half - 30),
+                    Direction::North => (center_x + vehicle_half, vehicle.y as i32),
+                    Direction::South => (center_x - vehicle_half, vehicle.y as i32),
+                    Direction::East => (vehicle.x as i32, center_y + vehicle_half),
+                    Direction::West => (vehicle.x as i32, center_y - vehicle_half),
                 };
 
                 let rect = Rect::new(
