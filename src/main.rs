@@ -155,13 +155,22 @@ fn move_vehicle(vehicle: &mut Vehicle) {
 fn handle_route_change(vehicle: &mut Vehicle) {
     let center_x = (WINDOW_WIDTH as f32) / 2.0;
     let center_y = (WINDOW_HEIGHT as f32) / 2.0;
+
     if vehicle.route != Route::Straight && !vehicle.has_turned {
-        let should_turn = match vehicle.direction {
-            Direction::North => vehicle.y <= center_y + VEHICLE_SIZE as f32,
-            Direction::South => vehicle.y >= center_y - VEHICLE_SIZE as f32,
-            Direction::East => vehicle.x >= center_x - VEHICLE_SIZE as f32,
-            Direction::West => vehicle.x <= center_x + VEHICLE_SIZE as f32,
+        let should_turn = match (vehicle.direction, vehicle.route) {
+            (Direction::North, Route::Left) => vehicle.y <= center_y,
+            (Direction::South, Route::Left) => vehicle.y >= center_y,
+            (Direction::East, Route::Left) => vehicle.x >= center_x,
+            (Direction::West, Route::Left) => vehicle.x <= center_x,
+
+            (Direction::North, Route::Right) => vehicle.y <= center_y + (VEHICLE_SIZE as f32),
+            (Direction::South, Route::Right) => vehicle.y >= center_y - (VEHICLE_SIZE as f32),
+            (Direction::East, Route::Right) => vehicle.x >= center_x - (VEHICLE_SIZE as f32),
+            (Direction::West, Route::Right) => vehicle.x <= center_x + (VEHICLE_SIZE as f32),
+
+            _ => false,
         };
+
         if should_turn {
             match vehicle.route {
                 Route::Left => {
@@ -188,10 +197,10 @@ fn handle_route_change(vehicle: &mut Vehicle) {
 }
 
 fn vehicle_off_screen(vehicle: Vehicle) -> bool {
-    vehicle.x < -50.0 ||
-        vehicle.x > (WINDOW_WIDTH as f32) + 50.0 ||
-        vehicle.y < -50.0 ||
-        vehicle.y > (WINDOW_HEIGHT as f32) + 50.0
+    vehicle.x < -(VEHICLE_SIZE as f32) ||
+        vehicle.x > (WINDOW_WIDTH as f32) + (VEHICLE_SIZE as f32) ||
+        vehicle.y < -(VEHICLE_SIZE as f32) ||
+        vehicle.y > (WINDOW_HEIGHT as f32) + (VEHICLE_SIZE as f32)
 }
 
 fn get_route_color(route: Route) -> Color {
