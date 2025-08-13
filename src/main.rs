@@ -157,10 +157,10 @@ fn handle_route_change(vehicle: &mut Vehicle) {
     let center_y = (WINDOW_HEIGHT as f32) / 2.0;
     if vehicle.route != Route::Straight && !vehicle.has_turned {
         let should_turn = match vehicle.direction {
-            Direction::North => vehicle.y <= center_y,
-            Direction::South => vehicle.y >= center_y,
-            Direction::East => vehicle.x >= center_x,
-            Direction::West => vehicle.x <= center_x,
+            Direction::North => vehicle.y <= center_y + VEHICLE_SIZE as f32,
+            Direction::South => vehicle.y >= center_y - VEHICLE_SIZE as f32,
+            Direction::East => vehicle.x >= center_x - VEHICLE_SIZE as f32,
+            Direction::West => vehicle.x <= center_x + VEHICLE_SIZE as f32,
         };
         if should_turn {
             match vehicle.route {
