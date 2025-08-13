@@ -9,7 +9,7 @@ use rand::Rng;
 
 const WINDOW_WIDTH: u32 = 1000;
 const WINDOW_HEIGHT: u32 = 800;
-const ROAD_WIDTH: i32 = 60;
+const ROAD_WIDTH: i32 = 100;
 const LANE_WIDTH: i32 = 30;
 const VEHICLE_SIZE: i32 = 30;
 const SAFETY_GAP: i32 = 15;
@@ -297,10 +297,10 @@ impl TrafficSimulation {
                 canvas.set_draw_color(vehicle.color);
 
                 let (x, y) = match vehicle.direction {
-                    Direction::North => (center_x + vehicle_half, vehicle.y as i32),
-                    Direction::South => (center_x - vehicle_half, vehicle.y as i32),
-                    Direction::East => (vehicle.x as i32, center_y + vehicle_half),
-                    Direction::West => (vehicle.x as i32, center_y - vehicle_half),
+                    Direction::North => (center_x + vehicle_half + 10, vehicle.y as i32),
+                    Direction::South => (center_x - vehicle_half - 10, vehicle.y as i32),
+                    Direction::East => (vehicle.x as i32, center_y + vehicle_half + 10),
+                    Direction::West => (vehicle.x as i32, center_y - vehicle_half - 10),
                 };
 
                 let rect = Rect::new(
@@ -365,7 +365,7 @@ fn main() -> Result<(), String> {
         }
         simulation.update();
         simulation.render(&mut canvas)?;
-        std::thread::sleep(Duration::from_millis(30));
+        std::thread::sleep(Duration::from_millis(10));
     }
     Ok(())
 }
