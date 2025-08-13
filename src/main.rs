@@ -330,20 +330,25 @@ fn main() -> Result<(), String> {
     println!("Green - Going Straight");
     println!("Yellow - Turning Left");
     println!("Orange - Turning Right");
+    let mut last_spawn_time = Instant::now();
+
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running;
                 }
-                Event::KeyDown { keycode: Some(keycode), .. } => {
-                    match keycode {
-                        Keycode::Up => simulation.spawn_vehicle(Direction::North),
-                        Keycode::Down => simulation.spawn_vehicle(Direction::South),
-                        Keycode::Right => simulation.spawn_vehicle(Direction::East),
-                        Keycode::Left => simulation.spawn_vehicle(Direction::West),
-                        Keycode::R => simulation.spawn_random_vehicle(),
-                        _ => {}
+                Event::KeyDown { keycode: Some(keycode), repeat, .. } => {
+                    if !repeat && last_spawn_time.elapsed() >= Duration::from_millis(700) {
+                        match keycode {
+                            Keycode::Up => simulation.spawn_vehicle(Direction::North),
+                            Keycode::Down => simulation.spawn_vehicle(Direction::South),
+                            Keycode::Right => simulation.spawn_vehicle(Direction::East),
+                            Keycode::Left => simulation.spawn_vehicle(Direction::West),
+                            Keycode::R => simulation.spawn_random_vehicle(),
+                            _ => {}
+                        }
+                        last_spawn_time = Instant::now();
                     }
                 }
                 _ => {}
