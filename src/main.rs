@@ -385,7 +385,6 @@ impl TrafficSimulation {
         self.draw_roads(canvas)?;
         self.draw_traffic_lights(canvas)?;
         self.draw_vehicles(canvas)?;
-        self.draw_ui(canvas)?;
 
         canvas.present();
         Ok(())
@@ -487,18 +486,6 @@ impl TrafficSimulation {
                 canvas.fill_rect(indicator)?;
             }
         }
-        Ok(())
-    }
-
-    fn draw_ui(&self, canvas: &mut WindowCanvas) -> Result<(), String> {
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        let info_bg = Rect::new(10, 10, 300, 120);
-        canvas.fill_rect(info_bg)?;
-
-        canvas.set_draw_color(Color::RGB(255, 255, 255));
-        let border = Rect::new(8, 8, 304, 124);
-        canvas.draw_rect(border)?;
-
         Ok(())
     }
 }
