@@ -1,8 +1,7 @@
 use macroquad::{ prelude::*, rand::gen_range };
-use crate::{ last_vehicle_direction, traffic_lights::TrafficLights, tools::vehicles_count_by_dir };
+use crate::{ last_vehicle_direction, traffic_lights::TrafficLights };
 
 // Constants
-const MAX: usize = 10;
 const GAP: i32 = 65;
 
 // Enums
@@ -79,13 +78,12 @@ impl Vehicle {
         }
     }
 
-    pub fn at_traffic_light(&mut self, lights: &TrafficLights) -> bool{
-            (!lights.down_light && self.dir == Direction::Down && self.y == 360) ||
+    pub fn at_traffic_light(&mut self, lights: &TrafficLights) -> bool {
+        (!lights.down_light && self.dir == Direction::Down && self.y == 360) ||
             (!lights.top_light && self.dir == Direction::Up && self.y == 210) ||
             (!lights.right_light && self.dir == Direction::Right && self.x == 310) ||
             (!lights.left_light && self.dir == Direction::Left && self.x == 460)
     }
-
 
     // movement helpers
     fn on_up(&mut self) {
@@ -170,7 +168,7 @@ impl Vehicle {
             }
         };
 
-        if can_push && vehicles_count_by_dir(vehicles, dir) < MAX {
+        if can_push {
             vehicles.push(self);
         }
         // vehicles.push(self);

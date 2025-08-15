@@ -8,7 +8,7 @@ pub const HEIGHT: f32 = 600.0;
 
 pub const ON_DURATION: Duration = Duration::from_secs(1);
 pub const OFF_DURATION: Duration = Duration::from_millis(500);
-pub const CAPACITY: usize = 5;
+pub const CAPACITY: usize = 10;
 
 pub fn draw_vehicles(vehicles: &[Vehicle]) {
     for vehicle in vehicles {
@@ -118,7 +118,7 @@ pub fn last_vehicle_direction(vehicles: &mut Vec<Vehicle>, dir: Direction) -> Op
         .cloned()
 }
 
-// count single direction vehicles 
+// count single direction vehicles
 pub fn vehicles_count_by_dir(vehicles: &Vec<Vehicle>, direction: Direction) -> usize {
     let vehicles_vec = &mut vehicles.clone(); // Convert to Vec<vehicle>
     let (up, down, left, right) = vehicle_direction(vehicles_vec);
@@ -133,6 +133,7 @@ pub fn vehicles_count_by_dir(vehicles: &Vec<Vehicle>, direction: Direction) -> u
     println!("Lane {:?}: {} vehicles waiting", direction, count);
     count
 }
+
 // Key Event Handlers
 pub fn key_up(vehicles: &mut Vec<Vehicle>) {
     let vehicle = Vehicle::new(410, 600, Direction::Down, Vehicle::random());
@@ -156,7 +157,8 @@ pub fn key_left(vehicles: &mut Vec<Vehicle>) {
 
 pub fn key_r(vehicles: &mut Vec<Vehicle>) {
     let vec: Vec<fn(&mut Vec<Vehicle>)> = vec![key_up, key_down, key_left, key_right];
-    (vec[gen_range(0, 4)])(vehicles);
+    let selected = vec[gen_range(0, 4)];
+    selected(vehicles);
 }
 
 pub fn calc_duration(vehicle_count: usize) -> Duration {

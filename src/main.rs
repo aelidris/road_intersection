@@ -59,7 +59,7 @@ async fn main() {
 
         // Remove vehicles that are off-screen
         vehicles.retain(
-            |vehicle| vehicle.y <= 660 && vehicle.y >= -60 && vehicle.x <= 860 && vehicle.x >= -60
+            |vehicle| vehicle.y <= 700 && vehicle.y >= -100 && vehicle.x <= 900 && vehicle.x >= -100
         );
 
         // Handle input
