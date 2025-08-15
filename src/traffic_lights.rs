@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 use crate::*;
-use std::time::{Instant, Duration};
+use std::time::{ Instant, Duration };
 
 pub struct TrafficLights {
     pub top_light: bool,
@@ -13,131 +13,115 @@ pub struct TrafficLights {
     pub duration: Option<Duration>,
 }
 
-
-pub fn road_vehicles_count(vehicles: &Vec<Vehicle>, direction: Direction) -> usize {
-    let vehicles_vec = &mut vehicles.clone(); // Convert to Vec<vehicle>
-    let (up, down, left, right) = vehicle_direction(vehicles_vec);
-
-    let count = match direction {
-        Direction::Up => up.len(),
-        Direction::Down => down.len(),
-        Direction::Left => left.len(),
-        Direction::Right => right.len(),
-    };
-
-    println!("Lane {:?}: {} vehicles waiting", direction, count);
-    count
-}
-
-pub fn traffic_lights(vehicle: &mut Vehicle, lights: &TrafficLights) {
-    if
-        (!lights.down_light && vehicle.dir == Direction::Down && vehicle.y == 360) ||
-        (!lights.top_light && vehicle.dir == Direction::Up && vehicle.y == 210) ||
-        (!lights.right_light && vehicle.dir == Direction::Right && vehicle.x == 310) ||
-        (!lights.left_light && vehicle.dir == Direction::Left && vehicle.x == 460)
-    {
-        vehicle.moving = false;
-    } else {
-        vehicle.moving = true;
-    }
-}
-
-pub fn prioritize_vehicle(lights: &mut TrafficLights, vehicles: &Vec<Vehicle>) {
-    let elapsed = lights.timestamp.elapsed();
-
-    let current_on_duration = if let Some(delai) = lights.duration {
-        ON_DURATION + delai
-    } else {
-        ON_DURATION
-    };
-
-    if lights.state {
-        if elapsed >= current_on_duration {
-            lights.right_light = false;
-            lights.top_light = false;
-            lights.left_light = false;
-            lights.down_light = false;
-
-            lights.state = false;
-            lights.timestamp = Instant::now();
-            lights.duration = None; // Reset extension
+impl TrafficLights {
+    pub fn new() -> Self {
+        Self {
+            top_light: false,
+            down_light: false,
+            left_light: false,
+            right_light: false,
+            timestamp: Instant::now(),
+            direction: Direction::Right,
+            state: false,
+            duration: None,
         }
-    } else {
-        if elapsed >= OFF_DURATION {
-            lights.direction = match lights.direction {
-                Direction::Right => Direction::Up,
-                Direction::Up => Direction::Left,
-                Direction::Left => Direction::Down,
-                Direction::Down => Direction::Right,
-            };
+    }
+    pub fn prioritize_vehicle(&mut self, vehicles: &Vec<Vehicle>) {
+        let elapsed: Duration = self.timestamp.elapsed();
 
-            let vehicle_count = road_vehicles_count(vehicles, lights.direction);
-            if vehicle_count >= CAPACITY {
-                lights.duration = Some(calc_duration(vehicle_count));
-            } else if vehicle_count == 0 {
-                lights.duration = None;
+        let current_on_duration = if let Some(delai) = self.duration {
+            ON_DURATION + delai
+        } else {
+            ON_DURATION
+        };
+
+        if self.state {
+            if elapsed >= current_on_duration {
+                self.right_light = false;
+                self.top_light = false;
+                self.left_light = false;
+                self.down_light = false;
+
+                self.state = false;
+                self.timestamp = Instant::now();
+                self.duration = None; // Reset
             }
+        } else {
+            if elapsed >= OFF_DURATION {
+                self.direction = match self.direction {
+                    Direction::Right => Direction::Up,
+                    Direction::Up => Direction::Left,
+                    Direction::Left => Direction::Down,
+                    Direction::Down => Direction::Right,
+                };
 
-            match lights.direction {
-                Direction::Right => {
-                    lights.right_light = true;
-                    lights.top_light = false;
-                    lights.left_light = false;
-                    lights.down_light = false;
+                let vehicle_count = vehicles_count_by_dir(vehicles, self.direction);
+                if vehicle_count >= CAPACITY {
+                    self.duration = Some(calc_duration(vehicle_count));
+                } else if vehicle_count == 0 {
+                    self.duration = None;
                 }
-                Direction::Up => {
-                    lights.right_light = false;
-                    lights.top_light = true;
-                    lights.left_light = false;
-                    lights.down_light = false;
+
+                match self.direction {
+                    Direction::Right => {
+                        self.right_light = true;
+                        self.top_light = false;
+                        self.left_light = false;
+                        self.down_light = false;
+                    }
+                    Direction::Up => {
+                        self.right_light = false;
+                        self.top_light = true;
+                        self.left_light = false;
+                        self.down_light = false;
+                    }
+                    Direction::Left => {
+                        self.right_light = false;
+                        self.top_light = false;
+                        self.left_light = true;
+                        self.down_light = false;
+                    }
+                    Direction::Down => {
+                        self.right_light = false;
+                        self.top_light = false;
+                        self.left_light = false;
+                        self.down_light = true;
+                    }
                 }
-                Direction::Left => {
-                    lights.right_light = false;
-                    lights.top_light = false;
-                    lights.left_light = true;
-                    lights.down_light = false;
-                }
-                Direction::Down => {
-                    lights.right_light = false;
-                    lights.top_light = false;
-                    lights.left_light = false;
-                    lights.down_light = true;
-                }
+
+                self.state = true;
             }
-
-            lights.state = true;
-            lights.timestamp = Instant::now();
         }
     }
-}
 
-pub fn on_light(direction: Direction, lights: &mut TrafficLights) {
-    match direction {
-        Direction::Right => {
-            lights.right_light = true;
-            lights.top_light = false;
-            lights.left_light = false;
-            lights.down_light = false;
+    pub fn on_light(&mut self, direction: Direction) {
+        match direction {
+            Direction::Right => {
+                self.right_light = true;
+                self.top_light = false;
+                self.left_light = false;
+                self.down_light = false;
+            }
+            Direction::Up => {
+                self.top_light = true;
+                self.right_light = false;
+                self.left_light = false;
+                self.down_light = false;
+            }
+            Direction::Left => {
+                self.left_light = true;
+                self.top_light = false;
+                self.right_light = false;
+                self.down_light = false;
+            }
+            Direction::Down => {
+                self.down_light = true;
+                self.left_light = false;
+                self.top_light = false;
+                self.right_light = false;
+            }
         }
-        Direction::Up => {
-            lights.top_light = true;
-            lights.right_light = false;
-            lights.left_light = false;
-            lights.down_light = false;
-        }
-        Direction::Left => {
-            lights.left_light = true;
-            lights.top_light = false;
-            lights.right_light = false;
-            lights.down_light = false;
-        }
-        Direction::Down => {
-            lights.down_light = true;
-            lights.left_light = false;
-            lights.top_light = false;
-            lights.right_light = false;
-        }
+        self.state = true;
+        self.timestamp = Instant::now();
     }
-    lights.state = true;
-    lights.timestamp = Instant::now();
 }

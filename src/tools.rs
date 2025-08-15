@@ -6,8 +6,8 @@ use std::time::Duration;
 pub const WIDTH: f32 = 800.0;
 pub const HEIGHT: f32 = 600.0;
 
-pub const ON_DURATION: Duration = Duration::new(1, 0);
-pub const OFF_DURATION: Duration = Duration::new(0, 500000000);
+pub const ON_DURATION: Duration = Duration::from_secs(1);
+pub const OFF_DURATION: Duration = Duration::from_millis(500);
 pub const CAPACITY: usize = 5;
 
 pub fn draw_vehicles(vehicles: &[Vehicle]) {
@@ -88,6 +88,7 @@ pub fn draw_traffic_lights(lights: &TrafficLights) {
     draw_rectangle_lines(452.0, 218.0, 30.0, 30.0, 2.0, color);
 }
 
+//return 4 Vecs contains vehicule filtred by direction
 pub fn vehicle_direction(
     vehicles: &mut Vec<Vehicle>
 ) -> (Vec<Vehicle>, Vec<Vehicle>, Vec<Vehicle>, Vec<Vehicle>) {
@@ -108,6 +109,7 @@ pub fn vehicle_direction(
     (up, down, left, right)
 }
 
+// get last vehicle by direction
 pub fn last_vehicle_direction(vehicles: &mut Vec<Vehicle>, dir: Direction) -> Option<Vehicle> {
     vehicles
         .iter()
@@ -116,25 +118,40 @@ pub fn last_vehicle_direction(vehicles: &mut Vec<Vehicle>, dir: Direction) -> Op
         .cloned()
 }
 
+// count single direction vehicles 
+pub fn vehicles_count_by_dir(vehicles: &Vec<Vehicle>, direction: Direction) -> usize {
+    let vehicles_vec = &mut vehicles.clone(); // Convert to Vec<vehicle>
+    let (up, down, left, right) = vehicle_direction(vehicles_vec);
+
+    let count = match direction {
+        Direction::Up => up.len(),
+        Direction::Down => down.len(),
+        Direction::Left => left.len(),
+        Direction::Right => right.len(),
+    };
+
+    println!("Lane {:?}: {} vehicles waiting", direction, count);
+    count
+}
 // Key Event Handlers
 pub fn key_up(vehicles: &mut Vec<Vehicle>) {
     let vehicle = Vehicle::new(410, 600, Direction::Down, Vehicle::random());
-    vehicle.push(vehicles, Some(510), None, Direction::Down);
+    vehicle.push(vehicles, Some(570), None, Direction::Down);
 }
 
 pub fn key_down(vehicles: &mut Vec<Vehicle>) {
-    let vehicle = Vehicle::new(360, -30, Direction::Up, Vehicle::random());
+    let vehicle = Vehicle::new(360, 0, Direction::Up, Vehicle::random());
     vehicle.push(vehicles, Some(60), None, Direction::Up);
 }
 
 pub fn key_right(vehicles: &mut Vec<Vehicle>) {
     let vehicle = Vehicle::new(-30, 310, Direction::Right, Vehicle::random());
-    vehicle.push(vehicles, None, Some(60), Direction::Right);
+    vehicle.push(vehicles, None, Some(30), Direction::Right);
 }
 
 pub fn key_left(vehicles: &mut Vec<Vehicle>) {
     let vehicle = Vehicle::new(800, 260, Direction::Left, Vehicle::random());
-    vehicle.push(vehicles, None, Some(740), Direction::Left);
+    vehicle.push(vehicles, None, Some(770), Direction::Left);
 }
 
 pub fn key_r(vehicles: &mut Vec<Vehicle>) {

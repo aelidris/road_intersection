@@ -1,5 +1,4 @@
 use macroquad::prelude::*;
-use std::time::Instant;
 
 mod vehicles;
 mod traffic_lights;
@@ -9,12 +8,9 @@ use vehicles::*;
 use traffic_lights::*;
 use tools::*;
 
-const WIDTH: f32 = 800.0;
-const HEIGHT: f32 = 600.0;
-
 fn conf() -> Conf {
     Conf {
-        window_title: "test".to_string(),
+        window_title: "road_intersection".to_string(),
         window_width: WIDTH as i32,
         window_height: HEIGHT as i32,
         fullscreen: false,
@@ -26,22 +22,13 @@ fn conf() -> Conf {
 #[macroquad::main(conf)]
 async fn main() {
     let mut vehicles: Vec<Vehicle> = Vec::new();
-
-    let mut lights = TrafficLights {
-        top_light: false,
-        down_light: false,
-        left_light: false,
-        right_light: false,
-        timestamp: Instant::now(),
-        direction: Direction::Right,
-        state: false,
-        duration: None,
-    };
+    let mut lights = TrafficLights::new();
 
     loop {
         clear_background(BLACK);
 
         draw_roads();
+        draw_traffic_lights(&lights);
 
         let (up, down, left, right) = vehicle_direction(&mut vehicles);
         let mut count = 0;
@@ -50,20 +37,17 @@ async fn main() {
                 count += 1;
             }
         });
-
         if count == 1 {
-            vehicles[vehicles.len() - 1].road_light(&mut lights);
+            let last_vehicle: Vehicle = vehicles[vehicles.len() - 1].clone();
+            lights.on_light(last_vehicle.dir);
         } else {
-            prioritize_vehicle(&mut lights, &vehicles);
+            lights.prioritize_vehicle(&vehicles);
         }
 
-        draw_traffic_lights(&lights);
-
         // Update vehicles
-        let copy_vehicles = vehicles.clone();
+        let copy = &vehicles.clone();
         for vehicle in &mut vehicles {
-            traffic_lights(vehicle, &mut lights);
-            if vehicle.moving && !vehicle.next(&copy_vehicles) {
+            if !vehicle.at_traffic_light(&mut lights) && !vehicle.next(copy) {
                 vehicle.update();
             }
             if !vehicle.turned {
@@ -75,7 +59,7 @@ async fn main() {
 
         // Remove vehicles that are off-screen
         vehicles.retain(
-            |vehicle| vehicle.y <= 630 && vehicle.y >= -30 && vehicle.x <= 830 && vehicle.x >= -30
+            |vehicle| vehicle.y <= 660 && vehicle.y >= -60 && vehicle.x <= 860 && vehicle.x >= -60
         );
 
         // Handle input
